@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fish Food Pollution Simulation</title>
+    <style>
+        body {
+            text-align: center;
+            background: linear-gradient(to right, #83a4d4, #b6fbff);
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            background-color: #e0f7fa;
+            border: 2px solid black;
+            margin-top: 20px;
+        }
+        input, button {
+            margin: 5px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🐟 Fish, Food, and Pollution Simulation 🌍</h1>
+
+    <canvas id="simulation" width="600" height="600"></canvas>
+
+    <h3>Add a Pollutant</h3>
+    <input type="text" id="pollutantName" placeholder="Pollutant Name">
+    <input type="number" id="pollutantLevel" placeholder="Pollution Level (1-100)">
+    <button onclick="addPollutant()">Add Pollutant</button>
+
+    <script>
+        let fishData = [];
+        let foodData = [];
+        let pollutants = [];
+
+        function fetchData() {
+            fetch("/fish_data")
+                .then(res => res.json())
+                .then(data => { fishData = data; });
+            fetch("/food_data")
+                .then(res => res.json())
+                .then(data => { foodData = data; });
+            fetch("/get_pollutants")
+                .then(res => res.json())
+                .then(data => { pollutants = data.pollutants; });
+        }
+
+        function addPollutant() {
+            let name = document.getElementById("pollutantName").value;
+            let level = document.getElementById("pollutantLevel").value;
+            if (!name || !level) {
+                alert("Please enter pollutant name and level!");
+                return;
+            }
+            fetch(`/add_pollutant/${level}/${name}`)
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message);
+                    fetchData();
+                });
+        }
+
+        function drawSimulation() {
+            let canvas = document.getElementById("simulation");
+            let ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            foodData.forEach(food => {
+                ctx.fillStyle = "green";
+                ctx.fillRect(food[0] * 30, food[1] * 30, 10, 10);
+            });
+
+            fishData.forEach(fish => {
+                ctx.fillStyle = fish.energy < 30 ? "red" : "blue";
+                ctx.beginPath();
+                ctx.arc(fish.x * 30 + 5, fish.y * 30 + 5, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            ctx.fillStyle = "black";
+            ctx.font = "14px Arial";
+            ctx.fillText("Pollutants:", 10, 550);
+            pollutants.forEach((pollutant, idx) => {
+                ctx.fillText(`${pollutant[1]} (Level: ${pollutant[0]})`, 10, 570 + idx * 20);
+            });
+
+            requestAnimationFrame(drawSimulation);
+        }
+
+        window.onload = () => {
+            fetchData();
+            setInterval(fetchData, 3000);
+            drawSimulation();
+        };
+    </script>
+
+</body>
+</html>
